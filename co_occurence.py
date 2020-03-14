@@ -24,6 +24,13 @@ def distinctWords(corpus):
     num_corpus_words = -1
 
     ### SOLUTION BEGIN
+    distinct_words = set([])
+    for sentence in corpus:
+        for word in sentence:
+            distinct_words.add(word)
+
+    corpus_words = sorted(list(distinct_words))
+    num_corpus_words = len(corpus_words)
     ### SOLUTION END
 
     return corpus_words, num_corpus_words
@@ -31,19 +38,19 @@ def distinctWords(corpus):
 
 def computeCoOccurrenceMatrix(corpus, window_size=4):
     """ Compute co-occurrence matrix for the given corpus and window_size (default of 4).
-    
+
         Note: Each word in a document should be at the center of a window. Words near edges will have a smaller
               number of co-occurring words.
-              
+
               For example, if we take the document "START All that glitters is not gold END" with window size of 4,
               "All" will co-occur with "START", "that", "glitters", "is", and "not".
-    
+
         Params:
             corpus (list of list of strings): corpus of documents
             window_size (int): size of context window
         Return:
             M (numpy matrix of shape (number of unique words in the corpus , number of unique words in the corpus)):
-                Co-occurence matrix of word counts. 
+                Co-occurence matrix of word counts.
                 The ordering of the words in the rows/columns should be the same as the ordering of the words given by the distinct_words function.
             word2Ind (dict): dictionary that maps word to index (i.e. row/column number) for matrix M.
     """
@@ -52,8 +59,23 @@ def computeCoOccurrenceMatrix(corpus, window_size=4):
     word2Ind = {}
 
     ### SOLUTION BEGIN
-    ### SOLUTION END
 
+    # populate word2Ind
+    for i,w in enumerate(words):
+        word2Ind[w] = i
+
+    print(word2Ind)
+
+    M =  np.zeros((num_words, num_words))
+    for sentence in corpus:
+        for i, word in enumerate(sentence):
+            row = word2Ind[word]
+            for offset in range(i-window_size, i+window_size+1):
+                if (offset != i) and (offset >= 0) and offset < len(sentence):
+                    col = word2Ind[sentence[offset]]
+                    M[row, col] += 1
+
+    ### SOLUTION END
     return M, word2Ind
 
 
@@ -61,7 +83,7 @@ def reduceToKDim(M, k=2):
     """ Reduce a co-occurence count matrix of dimensionality (num_corpus_words, num_corpus_words)
         to a matrix of dimensionality (num_corpus_words, k) using the following SVD function from Scikit-Learn:
             - http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.TruncatedSVD.html
-    
+
         Params:
             M (numpy matrix of shape (number of unique words in the corpus , number of number of corpus words)): co-occurence matrix of word counts
             k (int): embedding size of each word after dimension reduction
@@ -75,6 +97,8 @@ def reduceToKDim(M, k=2):
     print("Running Truncated SVD over %i words..." % (M.shape[0]))
 
     ### SOLUTION BEGIN
+    svd = TruncatedSVD(n_components=k, n_iter=n_iters)
+    M_reduced = svd.fit_transform(M)
     ### SOLUTION END
 
     print("Done.")
