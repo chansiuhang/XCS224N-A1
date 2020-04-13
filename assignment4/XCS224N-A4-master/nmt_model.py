@@ -170,7 +170,7 @@ class NMT(nn.Module):
         enc_hiddens = enc_hiddens.permute(1, 0, 2)
         last_hidden = torch.cat([last_hidden[0], last_hidden[1]], dim=1)
         last_cell = torch.cat([last_cell[0], last_cell[1]], dim=1)
-        dec_init_state = (self.h_projection(last_hidden), self.c_projection(last_cell))
+        dec_init_state = (self.h_projection(last_hidden), self.c_projection(last_cell)) 
         ### END YOUR CODE
 
         return enc_hiddens, dec_init_state
@@ -239,19 +239,19 @@ class NMT(nn.Module):
         ###     Tensor Stacking:
         ###         https://pytorch.org/docs/stable/torch.html#torch.stack
         
-        enc_hiddens_proj = self.att_projection(enc_hiddens) 
-        Y = self.model_embeddings.target(target_padded)
-        
-
-        for Y_t in torch.split(Y, 1):  #3
-            Y_t = torch.squeeze(Y_t)
-            Ybar_t = torch.cat((o_prev, Y_t), dim=1)
-            dec_state, o_t, e_t = self.step(Ybar_t, dec_state, enc_hiddens,
-                                            enc_hiddens_proj, enc_masks)
+        # 1,
+        enc_hiddens_proj = self.att_projection(enc_hiddens) # enc_hiddens: (b, l, h * 2)  dot (h * 2, h) -> b, l, h
+        # 2,
+        Y = self.model_embeddings.target(target_padded) # (tgt_len, b, h)
+        # 3,
+        for Y_t in torch.split(Y, 1, dim=0):
+            squeezed = torch.squeeze(Y_t) # shape (b, e)
+            Ybar_t = torch.cat((squeezed, o_prev), dim=1) # shape (b, e + h)
+            dec_state, o_t, _ = self.step(Ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
             combined_outputs.append(o_t)
             o_prev = o_t
-
-        combined_outputs = torch.stack(combined_outputs)
+        # 4,
+        combined_outputs = torch.stack(combined_outputs, dim=0)
         ### END YOUR CODE
 
         return combined_outputs
@@ -353,7 +353,6 @@ class NMT(nn.Module):
         U_t = torch.cat((a_t, dec_hidden), 1)
         V_t = self.combined_output_projection(U_t)
         O_t = self.dropout(torch.tanh(V_t))
-
         ### END YOUR CODE
 
         combined_output = O_t
